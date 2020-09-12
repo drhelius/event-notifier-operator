@@ -1,0 +1,20 @@
+# permissions for end users to view slacknotifications.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: slacknotification-viewer-role
+rules:
+- apiGroups:
+  - eventnotifier.drhelius.io
+  resources:
+  - slacknotifications
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - eventnotifier.drhelius.io
+  resources:
+  - slacknotifications/status
+  verbs:
+  - get

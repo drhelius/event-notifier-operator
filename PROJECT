@@ -1,0 +1,11 @@
+domain: drhelius.io
+layout: go.kubebuilder.io/v2
+projectName: event-notifier-operator
+repo: github.com/drhelius/event-notifier-operator
+resources:
+- group: eventnotifier
+  kind: SlackNotification
+  version: v1
+version: 3-alpha
+plugins:
+  go.sdk.operatorframework.io/v2-alpha: {}

@@ -1,0 +1,10 @@
+apiVersion: eventnotifier.drhelius.io/v1
+kind: SlackNotification
+metadata:
+  name: slacknotification-sample
+spec:
+  token: 'xoxb-YOUR_TOKEN'
+  channel: '#YOUR_CHANNEL'
+  regex: '.*Back-off pulling image.*'
+  resources:
+    - pod
