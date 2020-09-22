@@ -5,6 +5,7 @@ import (
 
 	eventnotifierv1 "github.com/drhelius/event-notifier-operator/api/v1"
 	"github.com/go-logr/logr"
+	slackclient "github.com/slack-go/slack"
 )
 
 // Notification is the configuration for a Slack specific notification
