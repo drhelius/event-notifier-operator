@@ -14,6 +14,7 @@ A simple Kubernetes Operator that sends events to Slack.
 ## Slack
 
 For information about how to create a bot user check the Slack docs: https://api.slack.com/authentication/basics
+
 You will need the bot user token and the channel ID where the operator will post messages.
 
 ## Build and Usage
