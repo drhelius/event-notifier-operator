@@ -15,45 +15,58 @@ import (
 type Notification struct {
 	Name string
 	Spec *eventnotifierv1.SlackNotificationSpec
-	Log  logr.Logger
 }
 
 // Notifications is a list of current Notification items
 var Notifications []Notification
 
 // Manage ensures that a Notification instance is under control
-func Manage(cr *eventnotifierv1.SlackNotification, log logr.Logger) {
+func Manage(cr *eventnotifierv1.SlackNotification) {
 
-	var n Notification
-	n.Name = cr.Name
-	n.Spec = cr.Spec.DeepCopy()
-	n.Log = log
+	var newNotification Notification
+	newNotification.Name = cr.Name
+	newNotification.Spec = cr.Spec.DeepCopy()
 
 	found := false
 
 	// for each Notification in our current list
-	for _, i := range Notifications {
+	for i, n := range Notifications {
 		// check if we have this Notification already in the list
-		if n.Name == i.Name {
+		if n.Name == newNotification.Name {
 			// if we already have this notification in the list we want
 			// to update it in case it has changed
 			found = true
-			i.Spec = n.Spec.DeepCopy()
+			Notifications[i] = newNotification
 			break
 		}
 	}
 
 	// add the notification to the list if it is not present
 	if !found {
-		Notifications = append(Notifications, n)
+		Notifications = append(Notifications, newNotification)
+	}
+}
+
+// Remove ensures that a Notification instance is removed from the list of
+// controlled notifications
+func Remove(cr *eventnotifierv1.SlackNotification) {
+
+	// for each Notification in our current list
+	for i, n := range Notifications {
+		// check if we have this Notification already in the list
+		if n.Name == cr.Name {
+			// if we already have this notification in the list we want
+			// to remove it
+			Notifications = append(Notifications[:i], Notifications[i+1:]...)
+			break
+		}
 	}
 }
 
 // SendMessage sends a message using all current senders
-func SendEvent(event *corev1.Event) {
+func SendEvent(event *corev1.Event, log logr.Logger) {
 	// for each Notification in our current list
 	for _, n := range Notifications {
-		log := n.Log.WithName("Slack")
 
 		// Check if this event Kind is included in the Notification resources
 		kind := false
@@ -100,27 +113,6 @@ func SendEvent(event *corev1.Event) {
 				},
 			}
 
-			// count: 1
-			// eventTime: null
-			// firstTimestamp: "2020-09-23T12:55:35Z"
-			// involvedObject:
-			//   apiVersion: v1
-			//   fieldPath: spec.containers{order}
-			//   kind: Pod
-			//   name: order-v1.0.0-656c7d7457-fpb85
-			//   namespace: event-notifier-operator-system
-			//   resourceVersion: "58475144"
-			//   uid: c58070ad-56b5-4abe-b25f-37e28d0145dd
-			// kind: Event
-			// lastTimestamp: "2020-09-23T12:55:35Z"
-			// message: 'Readiness probe failed: dial tcp 10.129.2.35:8080: i/o timeout'
-			// reason: Unhealthy
-			// reportingComponent: ""
-			// reportingInstance: ""
-			// source:
-			//   component: kubelet
-			//   host: worker-2.geardome.duckdns.org
-
 			// Send message to Slack
 			channelID, timestamp, err := api.PostMessage(
 				n.Spec.Channel,
@@ -129,10 +121,10 @@ func SendEvent(event *corev1.Event) {
 				slackclient.MsgOptionAsUser(true),
 			)
 
-			log.Info("Message successfully sent to channel", "Channel", channelID, "Timestamp", timestamp)
-
 			if err != nil {
 				log.Error(err, "Unable to send message to Slack")
+			} else {
+				log.Info("Message successfully sent to channel", "Channel", channelID, "Timestamp", timestamp)
 			}
 		}
 	}

@@ -24,11 +24,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	eventnotifierv1 "github.com/drhelius/event-notifier-operator/api/v1"
 	"github.com/drhelius/event-notifier-operator/controllers/slack"
 )
+
+const notificationFinalizer = "finalizer.eventnotifier.drhelius.io"
 
 // SlackNotificationReconciler reconciles a SlackNotification object
 type SlackNotificationReconciler struct {
@@ -42,6 +45,7 @@ type SlackNotificationReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch
 
 func (r *SlackNotificationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
 	ctx := context.Background()
 	log := r.Log
 
@@ -56,8 +60,38 @@ func (r *SlackNotificationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 		return reconcile.Result{}, err
 	}
 
-	slack.Manage(cr, r.Log)
+	slack.Manage(cr)
 
+	isGoingToBeDeleted := cr.GetDeletionTimestamp() != nil
+
+	if isGoingToBeDeleted {
+		if contains(cr.GetFinalizers(), notificationFinalizer) {
+			// Run finalization logic for notificationFinalizer. If the
+			// finalization logic fails, don't remove the finalizer so
+			// that we can retry during the next reconciliation.
+			if err := r.finalize(log, cr); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			// Remove notificationFinalizer. Once all finalizers have been
+			// removed, the object will be deleted.
+			controllerutil.RemoveFinalizer(cr, notificationFinalizer)
+			err := r.Update(ctx, cr)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer for this CR
+	if !contains(cr.GetFinalizers(), notificationFinalizer) {
+		if err := r.addFinalizer(log, cr); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Show the current list of Notifications
 	for _, n := range slack.Notifications {
 		log.Info("SlackNotification list", "Item", n)
 	}
@@ -65,8 +99,39 @@ func (r *SlackNotificationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 	return ctrl.Result{}, nil
 }
 
+func (r *SlackNotificationReconciler) finalize(log logr.Logger, cr *eventnotifierv1.SlackNotification) error {
+
+	slack.Remove(cr)
+	log.Info("Successfully finalized SlackNotification")
+
+	return nil
+}
+
+func (r *SlackNotificationReconciler) addFinalizer(log logr.Logger, m *eventnotifierv1.SlackNotification) error {
+
+	log.Info("Adding Finalizer for SlackNotification")
+	controllerutil.AddFinalizer(m, notificationFinalizer)
+
+	// Update CR
+	err := r.Update(context.TODO(), m)
+	if err != nil {
+		log.Error(err, "Failed to update SlackNotification with finalizer")
+		return err
+	}
+	return nil
+}
+
 func (r *SlackNotificationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eventnotifierv1.SlackNotification{}).
 		Complete(r)
+}
+
+func contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }

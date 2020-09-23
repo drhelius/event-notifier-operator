@@ -43,8 +43,6 @@ func (r *EventReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log
 
-	log.Info("Event Reconciling", "Namespace", req.NamespacedName.Namespace, "Name", req.NamespacedName.Name)
-
 	event := &corev1.Event{}
 	err := r.Client.Get(ctx, req.NamespacedName, event)
 	if err != nil {
@@ -54,7 +52,7 @@ func (r *EventReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	slack.SendEvent(event)
+	slack.SendEvent(event, log)
 
 	return ctrl.Result{}, nil
 }
