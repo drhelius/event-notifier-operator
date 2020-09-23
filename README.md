@@ -19,13 +19,13 @@ You will need the bot user token and the channel ID where the operator will post
 
 ## Build and Usage
 
-Change the namespace where the operator is intended to be run. This namespace will be monitored for Kubernetes Events:
+- Change the namespace where the operator is intended to be run. This namespace will be monitored for Kubernetes Events:
 
 ```shell
 $ cd config/default/ && kustomize edit set namespace "mynamesapce" && cd ../..
 ```
 
-Build:
+- Build:
 
 ```
 $ make docker-build docker-push IMG=quay.io/youruser/event-notifier-operator:v0.0.1
