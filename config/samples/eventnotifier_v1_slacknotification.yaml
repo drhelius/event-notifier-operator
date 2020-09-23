@@ -3,8 +3,8 @@ kind: SlackNotification
 metadata:
   name: slacknotification-sample
 spec:
-  token: 'xoxb-YOUR_TOKEN'
-  channel: '#YOUR_CHANNEL'
+  token: 'xoxb-1380194758274-1365472684807-v8gTSHSG9Q5KcIx6nHIuPrxj'
+  channel: 'C01B65UG66N'
   regex: '.*Back-off pulling image.*'
   resources:
-    - pod
+    - Pod

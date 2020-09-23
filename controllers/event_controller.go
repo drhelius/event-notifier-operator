@@ -54,7 +54,7 @@ func (r *EventReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	slack.SendMessage(event.Message)
+	slack.SendEvent(event)
 
 	return ctrl.Result{}, nil
 }
